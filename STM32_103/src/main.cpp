@@ -132,6 +132,9 @@ int main(void){
 
 	LiquidCrystal lcd(lcd_rs, lcd_en, lcd_d4, lcd_d5, lcd_d6, lcd_d7);
 	lcd.begin(20, 4,0x00);
+
+
+	
 	uint8_t str_init[] = "E32_radio_reciver";
 	for(unsigned int i = 0; i< sizeof(str_init)/sizeof(str_init[0]); i++){
 		lcd.write(str_init[i]);
@@ -151,79 +154,18 @@ int main(void){
 
 
 	while (1) {
-		gpio_toggle(GPIOB, GPIO2); //без переключения светодиоода ничего не работает 
+		gpio_clear(GPIOB, GPIO2); //без переключения светодиоода ничего не работает 
 		if(pkg_is_received){
+			
 			pkg_is_received =0;
 			
 		}
-		//если индексы чтения и записи в кольцевом буфере совпадают
-		// if(!b.empty()){
-		
-		// 	if(b.readBytes(str,10)){//если пришло больше чем 8байт
-		// 		state = idle;
-		// 		for(int i=0; i<10; ++i){
-		// 			usart_send_blocking(USART1,str[i]);
-					
-					
-		// 		}
-
-			
-		// 		gpio_clear(GPIOB,M0);
-		// 		gpio_clear(GPIOB,M1);
-				
-		// 		//КОНЕЧНЫЙ АВТОМАТ
-		// 		for(const char ch: str){//прогоняет по всей строке
-		// 			switch(state){
-		// 				case idle:
-		// 					if(ch == '$'){state = data;
-		// 					}// Принят маркер, переходим к приёму данных
-		// 					else {}
-		// 				break;
-		// 				case data:
-
-		// 					if(ch == '*'){state = fin;pkg_is_begin=0;}//Принят терминатор, заканчиваем приём данных
-		// 					else if (ch == '$'){state = err;m = 0;
-		// 					k = 0;
-
-		// 					}
-		// 					else if(ch!=',') {buf[k+1][m] = ch;m++; m %= COL_SIZE;
-								
-		// 					}
-		// 					else {k+=1; 
-		// 						if(k>=ROW_SIZE){k=0;}
-		// 						m = 0;
-		// 						// usart_send_blocking(USART1,(uint16_t)k);
-		// 						// usart_send_blocking(USART1,'\t');
-		// 				// usart_send_blocking(USART1,buf[2][0]);
-		// 				// usart_send_blocking(USART1,buf[2][1]);
-		// 				// usart_send_blocking(USART1,buf[2][2]);
-		// 				// usart_send_blocking(USART1,buf[2][3]);
-		// 				}//Принят разделитель, принимаем новой число int 
-		// 				break;
-		// 				case fin:
-		// 					m = 0;
-		// 					k = 0;
-		// 					if (ch == '$'){state = data;} 
-		// 				else {state = err;} 
-		// 				break;
-		// 				case err:
-								
-		// 				k=0;m=0;
-		// 				break;
-		// 				// default:
-		// 			}
-		// 		}
-				
-		// 	}	
-			
-
 	
-			
-		// }
 
 	if(tiks-last_time>=1000){
 			last_time = tiks;
-			   lcd.createChar(0, EraseSymbolForLCD);
+			gpio_set(GPIOB, GPIO2);
+			lcd.createChar(0, EraseSymbolForLCD);
 			 lcd.clear();
 			 lcd.write(buf[1][0]);
 			 lcd.write(buf[1][1]);
@@ -243,37 +185,7 @@ int main(void){
 	
 
 	
-	
 
-	// //ПАРСИНГ ИНТОВ
-	// int int_val[2];
-	// char str_from_int [2][4];
-	// for(int i=0; i<2; i++){
-	// 	for(int j=0; j<4; j++){
-	// 	str_from_int[i][j]=0;
-	// 	}
-	// }
-	// //формируем из строки число int
-	// int_val[0] = atoi(buf[1]);//buf[1]указатель на строку1 ---перове число
-	// int_val[1] = atoi(buf[2]);//buf[2]указатель на строку2 ---второе число
-	// //формируем из int строку(для вывода в UART)
-	// itoa(int_val[0],str_from_int[0],10);
-	// itoa(int_val[1],str_from_int[1],10);
-	
-
-	// //если число меньше чем длина массива, в данном случае чем 4,
-	// 	//тогда itoa поставит '\0' на незаполненные места
-	// // usart_send_blocking(USART1,str_from_int[0][0]);
-	// // usart_send_blocking(USART1,str_from_int[0][1]);
-	// // usart_send_blocking(USART1,str_from_int[0][2]);
-	// // usart_send_blocking(USART1,str_from_int[0][3]);
-	// // usart_send_blocking(USART1,'\t');
-	
-	// // usart_send_blocking(USART1,str_from_int[1][0]);
-	// // usart_send_blocking(USART1,str_from_int[1][1]);
-	// // usart_send_blocking(USART1,str_from_int[1][2]);
-	// // usart_send_blocking(USART1,str_from_int[1][3]);
-	// // usart_send_blocking(USART1,'\t');
 
 		}
 
