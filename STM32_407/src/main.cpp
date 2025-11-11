@@ -43,6 +43,7 @@ char buf[ROW_SIZE][COL_SIZE];int m = 0;int k =0;
 
 uint32_t last_time_1 = 0;
 void pars_buffer_uart_print(void);
+void pasr_bufer_clear(void);
 
 
 
@@ -50,14 +51,11 @@ void usart2_isr(void)
 {
     if (((USART_CR1(USART2) & USART_CR1_RXNEIE) != 0) &&
 	    ((USART_SR(USART2) & USART_SR_RXNE) != 0)) {
-           
-     
 
          if(usart_recv(USART2) =='$' ){pkg_is_begin=1;
 		}
 		if(pkg_is_begin ){
 			b.put( static_cast<uint8_t>(usart_recv(USART2)));
-
 				if(!b.empty()){
 					ch = b.get();
 					usart_send_blocking(USART3,ch);
@@ -67,11 +65,12 @@ void usart2_isr(void)
 					switch(state){
 						case idle:
 							if(ch == '$'){state = data;
+								pasr_bufer_clear();
 							}// Принят маркер, переходим к приёму данных
 							else {}
 						break;
 						case data:
-
+							pkg_is_received =0;
 							if(ch == '*'){state = fin;pkg_is_begin=0;pkg_is_received = 1;}//Принят терминатор, заканчиваем приём данных
 							else if (ch == '$'){state = err;m = 0;
 							k = 0;
@@ -81,7 +80,9 @@ void usart2_isr(void)
                                 buf[k+1][m] = ch;m++; m %= COL_SIZE;
 								// usart_send_blocking(USART3,ch);
 							}
-							else {k+=1; 
+							else {
+								pkg_is_received =0;
+								k+=1; 
 								if(k>=ROW_SIZE){k=0;}
 								m = 0;
 								
@@ -90,11 +91,11 @@ void usart2_isr(void)
 						case fin:
 							m = 0;
 							k = 0;
-							if (ch == '$'){state = data;} 
+							if (ch == '$'){state = data;pasr_bufer_clear();} 
 						else {state = err;} 
 						break;
 						case err:
-								
+								if (ch == '$'){state = data;}
 						k=0;m=0;
 						break;
 						// default:
@@ -113,7 +114,7 @@ void config_radiomodule(void){
 	gpio_set(GPIOB, GPIO1);
     
     delay_ms(200);
-	uint8_t str_tx[]={0xC0,0x00,0x00,0x1A,0x06,0x44}; // Настройка для радиомодуля
+	uint8_t str_tx[]={0xC0,0x00,0x00,0x1D,0x06,0x44}; // Настройка для радиомодуля
     uart2_write(str_tx,6); // Записываем конфигурацию в радиомодуль
     delay_ms(200);
     
@@ -169,12 +170,15 @@ int main(void)
 
 
 
-
-            pars_buffer_uart_print();
-
+			if(pkg_is_received){
+				pkg_is_received = 0;	
+            	// pars_buffer_uart_print();
+			}	
 
            
         }
+
+
 		//  if(get_us() - last_time_1 >= 50000){
         //     last_time_1 = get_us();
         //     gpio_toggle(GPIOA,GPIO1);

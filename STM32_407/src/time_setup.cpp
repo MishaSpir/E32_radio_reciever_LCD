@@ -13,9 +13,12 @@ void timer3_setup(void) {
 	// 2. Настраиваем таймер:
 	//Настройка PSC. Частота таймера = 72 МГц / ((36-1) + 1) = 2 MГц = 0.5 us
 	//Максимальное число, кот можно записать в prescaler = 65535
-	timer_set_prescaler(TIM3,16-1);
-	//настройка ARR Период = ((8-1) + 1) * 0.5 us = 4.0 us
-	timer_set_period(TIM3,1007-1);
+	// timer_set_prescaler(TIM3,16-1);			//для черной платы
+	// timer_set_period(TIM3,1007-1);
+
+	timer_set_prescaler(TIM3,160-1);  //  для Дискавери
+	timer_set_period(TIM3,100-1);
+
 	// 3. Настраиваем прерывание по обновлению
 	timer_enable_irq(TIM3, TIM_DIER_UIE);
 	// 4. Включаем таймер
@@ -30,10 +33,12 @@ void timer2_setup(void) {
 	//Настройка PSC. Частота таймера = 72 МГц / ((36-1) + 1) = 2 MГц = 0.5 us
 	//Максимальное число, кот можно записать в prescaler = 65535
 	// timer_set_prescaler(TIM2,8-1);
-	timer_set_prescaler(TIM2,8-1);
-	//настройка ARR Период = ((8-1) + 1) * 0.5 us = 4.0 us
-	// timer_set_period(TIM2,20);
-	 timer_set_period(TIM2,20);
+	// timer_set_prescaler(TIM2,8-1);
+	//  timer_set_period(TIM2,20);
+
+	timer_set_prescaler(TIM2,16-1);		//для Дискавери
+	timer_set_period(TIM2,10);
+
 	// 3. Настраиваем прерывание по обновлению
 	timer_enable_irq(TIM2, TIM_DIER_UIE);
 	// 4. Включаем таймер

@@ -85,7 +85,7 @@ void usart2_isr(void)
 						case fin:
 							m = 0;
 							k = 0;
-							if (ch == '$'){state = data;} 
+							if (ch == '$'){state = data;pasr_bufer_clear();} 
 						else {state = err;} 
 						break;
 						case err:
