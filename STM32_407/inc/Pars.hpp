@@ -44,4 +44,8 @@ char* reverse(char* buffer, int i, int j);
 // сама функция itoa
 char* itoa(int value, char* buffer, int base);
 
+
+void FSM(char arr[], uint8_t length,int &sym_index,int &str_index,uint8_t &pkg_is_begin,uint8_t &pkg_is_received, char sym);
+void pars_buf_clear(char pars_buf[], uint8_t length);
+
 #endif

@@ -1,4 +1,6 @@
 #include "../inc/setup.hpp"
+#include "../inc/time_setup.hpp" 
+#include "../inc/Pars.hpp"
 
 void clock_setup(void){
     // rcc_clock_setup_pll(&rcc_hse_16mhz_3v3[RCC_CLOCK_3V3_84MHZ]);
@@ -68,4 +70,18 @@ void usart3_setup(void){ //для общения с ПК
     
     // Включаем USART3
     usart_enable(USART3);
+}
+
+
+void E32_InitConfig(uint32_t M_port, uint16_t M_0,uint16_t M_1,uint8_t config_str[]){
+  gpio_set(M_port, M_0);
+	gpio_set(M_port, M_1);
+    
+  delay_ms(200);
+  uart2_write(config_str,6); // Записываем конфигурацию в радиомодуль
+  delay_ms(200);
+    
+  gpio_clear(M_port, M_0);
+	gpio_clear(M_port, M_1);
+  delay_ms(200);  
 }

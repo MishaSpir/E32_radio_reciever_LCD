@@ -115,6 +115,86 @@ char* itoa(int value, char* buffer, int base) {
   return reverse(buffer, 0, i - 1);
 }
 
+
+
+enum State{
+    idle,
+    data,
+    fin,
+    err
+};
+State state = idle;
+
+
+	void FSM(char arr[], uint8_t length,int &sym_index,int &str_index,uint8_t &pkg_is_begin,uint8_t &pkg_is_received, char sym){
+	// usart_send_blocking(uart,'\n');
+	// 		for(int i =0; i< length; i++){
+	// 				if (arr[i]=='\0'){continue;}
+	// 			arr[i] ='a';	
+	// 		}
+	// usart_send_blocking(uart,'\t');		
+
+	// //КОНЕЧНЫЙ АВТОМАТ
+					switch(state){
+						case idle:
+							if(sym == '$'){
+								state = data;
+								pars_buf_clear(arr,length);
+							}// Принят маркер, переходим к приёму данных
+							else {}
+						break;
+						case data:
+							pkg_is_received = 0;
+							if(sym == '*'){
+								state = fin;
+								pkg_is_begin=0;
+								pkg_is_received = 1;
+							}//Принят терминатор, заканчиваем приём данных
+							else if (sym == '$'){
+								state = err;
+								sym_index = 0;
+								str_index = 0;
+							}
+							else {
+                                arr[sym_index] = sym;
+								sym_index++;
+								sym_index %= length;
+								// usart_send_blocking(USART3,ch);
+							}
+							
+						break;
+						case fin:
+							sym_index = 0;
+							str_index = 0;
+							if (sym == '$'){
+								state = data;
+								pars_buf_clear(arr,length);
+							} 
+						else {
+							state = err;
+						} 
+						break;
+						case err:
+							if (sym == '$'){
+								sym_index = 0;
+								str_index = 0;
+								state = data;
+								pars_buf_clear(arr,length);
+							} 
+						// str_index=0;sym_index=0;
+						break;
+						// default:
+					}
+}
+
+void pars_buf_clear(char pars_buf[], uint8_t length){
+	for(int i =0; i< length; i++){
+		pars_buf[i] = '\0' ;
+	}
+}
+	
+
+
 /*-----------------пример, как отправлять разные по значению, но одинаковые по длине int
 int int_temp = 6; 
 char char_temp[3];

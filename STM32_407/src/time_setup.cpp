@@ -8,16 +8,33 @@
 //TIM3 отвечает за tiks_ms
 //TIM2 отвечает за tiks_us  
 
+
+
+void timer4_setup(void){
+	gpio_mode_setup(GPIOD, GPIO_MODE_AF,GPIO_PUPD_NONE ,GPIO15);
+	gpio_set_af(GPIOD, GPIO_AF2,GPIO15);
+
+	rcc_periph_clock_enable(RCC_TIM4); //включаем тактирования таймера 4
+	timer_set_prescaler(TIM4,160-1);//PSC настраиваем частоту 16Мгц / 80 = 200КГц 
+	timer_set_period(TIM4,1000-1);//ARR настраиваем  
+	timer_set_oc_mode(TIM4,TIM_OC4,TIM_OCM_PWM1 );//настраиваем ШИМ
+	timer_set_oc_value(TIM4,TIM_OC4,500); //устанавливаем коэф заполнения OC
+	timer_enable_oc_output(TIM4,TIM_OC4); 
+	timer_enable_counter(TIM4);
+
+}
+
 void timer3_setup(void) {
     rcc_periph_clock_enable(RCC_TIM3);
 	// 2. Настраиваем таймер:
 	//Настройка PSC. Частота таймера = 72 МГц / ((36-1) + 1) = 2 MГц = 0.5 us
 	//Максимальное число, кот можно записать в prescaler = 65535
-	// timer_set_prescaler(TIM3,16-1);			//для черной платы
-	// timer_set_period(TIM3,1007-1);
 
-	timer_set_prescaler(TIM3,160-1);  //  для Дискавери
-	timer_set_period(TIM3,100-1);
+	timer_set_prescaler(TIM3,16-1);			//для черной платы
+	timer_set_period(TIM3,1007-1);
+
+	// timer_set_prescaler(TIM3,160-1);  //  для Дискавери
+	// timer_set_period(TIM3,100-1);
 
 	// 3. Настраиваем прерывание по обновлению
 	timer_enable_irq(TIM3, TIM_DIER_UIE);
@@ -32,12 +49,13 @@ void timer2_setup(void) {
 	// 2. Настраиваем таймер:
 	//Настройка PSC. Частота таймера = 72 МГц / ((36-1) + 1) = 2 MГц = 0.5 us
 	//Максимальное число, кот можно записать в prescaler = 65535
-	// timer_set_prescaler(TIM2,8-1);
-	// timer_set_prescaler(TIM2,8-1);
-	//  timer_set_period(TIM2,20);
+	
 
-	timer_set_prescaler(TIM2,16-1);		//для Дискавери
-	timer_set_period(TIM2,10);
+	timer_set_prescaler(TIM2,8-1); //для Черной платы
+	timer_set_period(TIM2,20);
+
+	// timer_set_prescaler(TIM2,16-1);		//для Дискавери
+	// timer_set_period(TIM2,10);
 
 	// 3. Настраиваем прерывание по обновлению
 	timer_enable_irq(TIM2, TIM_DIER_UIE);

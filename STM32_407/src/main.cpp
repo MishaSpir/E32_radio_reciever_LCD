@@ -8,7 +8,14 @@
 
 
 //В этой программе реализован приём данных по радиоканалу от моудля E32
-//приём данных происодит по специальному протоколу
+//приём данных происодит по специальному протоколу: 
+// $ - преамбула
+// , - разделитель 
+// * - терминатор
+
+//для работы приёмника E32 необходим передатчик E32
+
+
 
 
 
@@ -18,32 +25,36 @@
 #include "../inc/time_setup.hpp"
 #include "../inc/LiquidCrystalSTM.hpp"
 
+
+
 uint8_t pkg_is_begin = 0;
 uint8_t pkg_is_received = 0;
 
-uint8_t data_buffer;	
+	
 Circular_buffer b;
 uint8_t ch;
 
-enum State{
-    idle,
-    data,
-    fin,
-    err
-};
-State state = idle;
 
-//БУФФЕР ПАРСИНГА
-//строка 0 --- первое рапарсированное число
+//БУФФЕР ПАРСИНГА - хранит строку, очищенную от приамбулы и терминатора
+const uint8_t PARS_SYMBOLS_SIZE =32;
+int sym_index_2 = 0;int str_index_2 =0;
+char pars_buf[PARS_SYMBOLS_SIZE];
+void pars_buf_uart_print(void);
+
+
+//БУФФЕР СТРОК ПОСЛЕ ПАРСИНГА - хранит строки, разделенные разделителем
+//строка 0 --- первое рапарсированное число (Ключ)
 //строка 1 ---второе распарсированное число
-const uint8_t COL_SIZE =4;
-const uint8_t ROW_SIZE =5;
-char buf[ROW_SIZE][COL_SIZE];int m = 0;int k =0;
+const uint8_t SYMBOLS_LENGTH =5;
+const uint8_t STRINGS_LENGTH =5;
+int sym_indx = 0;int str_indx =0;
+char buf[STRINGS_LENGTH][SYMBOLS_LENGTH];
+void buf_uart_print(void);
+void buf_clear(void);
 
 
 uint32_t last_time_1 = 0;
-void pars_buffer_uart_print(void);
-void pasr_bufer_clear(void);
+
 
 
 
@@ -51,78 +62,24 @@ void usart2_isr(void)
 {
     if (((USART_CR1(USART2) & USART_CR1_RXNEIE) != 0) &&
 	    ((USART_SR(USART2) & USART_SR_RXNE) != 0)) {
-
-         if(usart_recv(USART2) =='$' ){pkg_is_begin=1;
-		}
+        
+        if(usart_recv(USART2) =='$' ){pkg_is_begin=1;}
+		
 		if(pkg_is_begin ){
 			b.put( static_cast<uint8_t>(usart_recv(USART2)));
-				if(!b.empty()){
-					ch = b.get();
-					usart_send_blocking(USART3,ch);
-
-					
-					//КОНЕЧНЫЙ АВТОМАТ
-					switch(state){
-						case idle:
-							if(ch == '$'){state = data;
-								pasr_bufer_clear();
-							}// Принят маркер, переходим к приёму данных
-							else {}
-						break;
-						case data:
-							pkg_is_received =0;
-							if(ch == '*'){state = fin;pkg_is_begin=0;pkg_is_received = 1;}//Принят терминатор, заканчиваем приём данных
-							else if (ch == '$'){state = err;m = 0;
-							k = 0;
-
-							}
-							else if(ch!=',') {
-                                buf[k+1][m] = ch;m++; m %= COL_SIZE;
-								// usart_send_blocking(USART3,ch);
-							}
-							else {
-								pkg_is_received =0;
-								k+=1; 
-								if(k>=ROW_SIZE){k=0;}
-								m = 0;
-								
-						}//Принят разделитель, принимаем новой число int 
-						break;
-						case fin:
-							m = 0;
-							k = 0;
-							if (ch == '$'){state = data;pasr_bufer_clear();} 
-						else {state = err;} 
-						break;
-						case err:
-								if (ch == '$'){state = data;}
-						k=0;m=0;
-						break;
-						// default:
-					}
-				}	
+			if(!b.empty()){
+				ch = b.get();
+				usart_send_blocking(USART3,ch);
+				//использование конечного автомата		
+				FSM(pars_buf,PARS_SYMBOLS_SIZE, sym_index_2, str_index_2,pkg_is_begin,pkg_is_received,ch);
+			}	
 				
-			}     
+		}     
 	}
 
 }
 
 
-
-void config_radiomodule(void){
-    gpio_set(GPIOB, GPIO0);
-	gpio_set(GPIOB, GPIO1);
-    
-    delay_ms(200);
-	uint8_t str_tx[]={0xC0,0x00,0x00,0x1D,0x06,0x44}; // Настройка для радиомодуля
-    uart2_write(str_tx,6); // Записываем конфигурацию в радиомодуль
-    delay_ms(200);
-    
-    gpio_clear(GPIOB, GPIO0);
-	gpio_clear(GPIOB, GPIO1);
-    delay_ms(200);
-    
-}
 
 int main(void)
 {   
@@ -132,28 +89,68 @@ int main(void)
     usart3_setup();
     timer3_setup();
     timer2_setup();
-  
-    config_radiomodule();
+	timer4_setup();
 
-
-	uint8_t EraseSymbolForLCD[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00};
+	//ИНИЦИАЛИЗАЦИЯ РАДИОМОДУЛЯ
+	uint8_t str_tx[]={0xC0,0x00,0x00,0x1D,0x06,0x44}; 
+	E32_InitConfig(GPIOB,M0,M1,str_tx);
+	delay_ms(2000);
+	
+	//ИНИЦИАЛИЗАЦИЯ ДИСПЛЕЯ
 	LiquidCrystal lcd(lcd_rs, lcd_en, lcd_d4, lcd_d5, lcd_d6, lcd_d7);
 	lcd.begin(20,4,0x00);
-	uint8_t str_init[] = "E32_radio_reciever";
+
+	uint8_t str_init[] = "E32_radio_reciever";	//приветсвующая строка
 	for(unsigned int i = 0; i< sizeof(str_init)/sizeof(str_init[0]); i++){
 		lcd.write(str_init[i]);
 		delay_ms(80);
-	}	
+	}
+
+	uint8_t EraseSymbolForLCD[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00}; //пустой символ - выводится, когда посылаем '\0'	
 	lcd.createChar(0, EraseSymbolForLCD);
 	delay_ms(2000);
+
+
 	
-    
-    
     while (1) {
         if(get_ms() - last_time_1 >= 1000){
             last_time_1 = get_ms();
-            gpio_toggle(GPIOA,GPIO1);
 			
+
+
+			
+
+        }
+		//ВОТ САМОЕ ИНТЕРЕСНОЕ - если пакет получен
+		if(pkg_is_received){
+			pkg_is_received = 0;
+			sym_indx = 0;
+			str_indx = 0;
+			buf_clear();
+
+			//второй парсинг
+			usart_send_blocking(USART3,'\t');
+			for( char pars_buf_ch: pars_buf){
+				if (pars_buf_ch=='\0'){continue;}
+				usart_send_blocking(USART3,pars_buf_ch);
+				if(pars_buf_ch!=',') {
+                    buf[str_indx][sym_indx] = pars_buf_ch;
+					// usart_send_blocking(USART3,buf[str_indx+1][sym_indx]);
+					sym_indx++;
+					sym_indx %= SYMBOLS_LENGTH;
+					// usart_send_blocking(USART3,ch);
+				}
+				else if(pars_buf_ch=','){
+					// pkg_is_received = 0;
+					str_indx++; 
+					str_indx %= STRINGS_LENGTH;
+					sym_indx = 0;		
+				}				
+			}
+			
+			buf_uart_print();
+
+			//ВЫВОДИМ НА ДИСПЛЕЙ ТО, ЧТО ПОЛУЧИЛИ
 			 lcd.clear();
 			 lcd.write(buf[1][0]);
 			 lcd.write(buf[1][1]);
@@ -168,45 +165,42 @@ int main(void)
 			 lcd.write(buf[3][1]);
 			 lcd.write(buf[3][2]);	
 
-
-
-			if(pkg_is_received){
-				pkg_is_received = 0;	
-            	// pars_buffer_uart_print();
-			}	
-
-           
-        }
-
-
-		//  if(get_us() - last_time_1 >= 50000){
-        //     last_time_1 = get_us();
-        //     gpio_toggle(GPIOA,GPIO1);
-       
-            
-        // }
-		// delay_us(10);
-		// gpio_toggle(GPIOA,GPIO1);
-
+		}
     }
     
-    return 0;
+return 0;
 }
 
-void pars_buffer_uart_print(void){//функция вывода ВСЕГО содержимого буфера на UART
+void buf_uart_print(void){//функция вывода ВСЕГО содержимого буфера на UART
 	usart_send_blocking(USART3,'\t');	
-			for(int i = 1; i<ROW_SIZE; i++){
-				for(int j =0; j< COL_SIZE; j++){
-					usart_send_blocking(USART3,buf[i][j]);
+			for(int i = 0; i<STRINGS_LENGTH; i++){
+				for(int j =0; j< SYMBOLS_LENGTH; j++){
+					if(buf[i][j]!='\0'){
+						usart_send_blocking(USART3,buf[i][j]);
+					}
+					
 				}
 				usart_send_blocking(USART3,'\t');
 			}usart_send_blocking(USART3,'\n');
 }
 
-void pasr_bufer_clear(void){ //функция очистки буфера парсинга
-	for(int i = 0; i<ROW_SIZE; i++){
-		for(int j =0; j< COL_SIZE; j++){
+void buf_clear(void){ //функция очистки буфера парсинга
+	for(int i = 0; i<STRINGS_LENGTH; i++){
+		for(int j =0; j< SYMBOLS_LENGTH; j++){
 			buf[i][j]='\0';
 		}
 	}
 }
+
+
+
+void pars_buf_uart_print(void){
+	usart_send_blocking(USART3,'\t');
+			for(int i =0; i< PARS_SYMBOLS_SIZE; i++){
+					if (pars_buf[i]=='\0'){continue;}
+				usart_send_blocking(USART3,pars_buf[i]);	
+			}
+}
+
+
+

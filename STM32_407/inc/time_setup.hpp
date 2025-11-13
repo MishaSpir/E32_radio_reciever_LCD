@@ -5,7 +5,7 @@
 # include <libopencm3/cm3/nvic.h>
 
 
-
+void timer4_setup(void);
 void timer2_setup(void);
 void timer3_setup(void);
 void tim2_isr(void);

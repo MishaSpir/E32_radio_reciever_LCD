@@ -23,7 +23,7 @@ void clock_setup(void);
 void gpio_setup(void);
 void usart2_setup(void);//для общения с модулем
 void usart3_setup(void);//для общения с ПК
-
+void E32_InitConfig(uint32_t M_port, uint16_t M_0,uint16_t M_1,uint8_t config_str[]);
 
 
 
